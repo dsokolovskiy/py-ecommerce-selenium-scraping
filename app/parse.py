@@ -110,20 +110,35 @@ def get_all_products() -> None:
     """Scrape all products from predefined pages and save them to CSV files."""
     with webdriver.Chrome() as driver:
         pages_info = {
-            "home": {"path": "test-sites/e-commerce/more/", "paginate": False},
-            "computers": {"path": "test-sites/e-commerce/more/computers", "paginate": False},
-            "laptops": {"path": "test-sites/e-commerce/more/computers/laptops", "paginate": True},
-            "tablets": {"path": "test-sites/e-commerce/more/computers/tablets", "paginate": True},
-            "phones": {"path": "test-sites/e-commerce/more/phones", "paginate": False},
-            "touch": {"path": "test-sites/e-commerce/more/phones/touch", "paginate": True},
+            "home": {"path": "test-sites/e-commerce/more/"},
+            "computers": {"path": "test-sites/e-commerce/more/computers"},
+            "laptops": {"path": "test-sites/e-commerce/more/computers/laptops"},
+            "tablets": {"path": "test-sites/e-commerce/more/computers/tablets"},
+            "phones": {"path": "test-sites/e-commerce/more/phones"},
+            "touch": {"path": "test-sites/e-commerce/more/phones/touch"},
         }
 
         for name, info in pages_info.items():
             url = urljoin(BASE_URL, info["path"])
-            products = get_page_products(url, driver, paginate=info["paginate"])
-            filename = f"{name}.csv"
-            write_products_to_csv(products, filename)
+            all_products = []
+            driver.get(url)
 
+            while True:
+                products = driver.find_elements(By.CLASS_NAME, "product-item")
+                for product in products:
+                    all_products.append(product.text)
 
-if __name__ == "__main__":
-    get_all_products()
+                try:
+                    next_button = driver.find_element(By.CSS_SELECTOR, "a.page-link.next")
+                    next_button.click()
+                except NoSuchElementException:
+                    break
+
+            with open(f"{name}.csv", "w", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                writer.writerow(["Product Details"])
+                for product in all_products:
+                    writer.writerow([product])
+
+    if __name__ == "__main__":
+        get_all_products()
